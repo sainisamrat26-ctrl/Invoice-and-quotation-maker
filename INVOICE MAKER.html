@@ -1,0 +1,536 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Invoice & Quotation Maker</title>
+<style>
+:root {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --ink: #182235;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --line: #dce3ec;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+header {
+  background: #101827;
+  color: white;
+  padding: 22px 16px;
+}
+header h1 { margin: 0 0 5px; font-size: 22px; }
+header p { margin: 0; color: #b8c4d7; }
+main { max-width: 850px; margin: auto; padding: 16px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+h2 { font-size: 16px; margin: 0 0 15px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.field { min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+input, select, textarea {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+}
+textarea { resize: vertical; min-height: 68px; }
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid #93c5fd;
+  border-color: var(--accent);
+}
+.document-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.document-head h2 { font-size: 24px; margin: 0; }
+.document-head .field { width: 155px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  text-align: left;
+  padding: 10px 5px;
+  border-bottom: 1px solid var(--line);
+}
+td { padding: 8px 4px; border-bottom: 1px solid var(--line); }
+td input { padding: 9px 6px; }
+th:nth-child(n+2), td:nth-child(n+2) { text-align: right; }
+.item-desc { min-width: 125px; }
+.item-qty { width: 66px; }
+.item-price { width: 100px; }
+.amount { white-space: nowrap; font-weight: 600; }
+.remove-btn {
+  border: 0;
+  color: #dc2626;
+  background: #fee2e2;
+  border-radius: 7px;
+  padding: 8px;
+  cursor: pointer;
+}
+.table-wrap td:last-child, .table-wrap th:last-child {
+  text-align: center;
+}
+button {
+  font: inherit;
+  font-weight: 650;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 14px;
+  cursor: pointer;
+}
+.primary { color: white; background: var(--accent); }
+.secondary { color: #1d4ed8; background: #dbeafe; }
+.dark { color: white; background: #101827; }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.totals {
+  max-width: 320px;
+  margin: 16px 0 0 auto;
+}
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+}
+.grand {
+  border-top: 2px solid var(--ink);
+  margin-top: 5px;
+  padding-top: 12px;
+  font-size: 19px;
+  font-weight: 750;
+}
+.note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.status { margin: 0 0 12px; color: #b91c1c; font-weight: 600; }
+footer { text-align: center; padding: 5px 16px 24px; color: var(--muted); }
+@media (max-width: 480px) {
+  main { padding: 10px; }
+  .card { padding: 13px; }
+  .grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: auto; }
+  .document-head h2 { font-size: 19px; }
+  .document-head .field { width: 125px; }
+  .item-price { width: 88px; }
+}
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: white; color: black; font-size: 11px; }
+  header, footer, .no-print, .remove-col, #status { display: none !important; }
+  main { max-width: none; padding: 0; margin: 0; }
+  .card {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0 0 14px;
+    break-inside: avoid;
+  }
+  .document-head h2 { font-size: 24px; }
+  input, select, textarea {
+    color: black;
+    border: 0;
+    border-radius: 0;
+    padding: 2px 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    font-size: 11px;
+  }
+  textarea { resize: none; }
+  label { color: #555; }
+  th { color: #444; }
+  td, th { padding: 6px 4px; }
+  .remove-col { display: none !important; }
+  .table-wrap { overflow: visible; }
+  .amount { white-space: nowrap; }
+  .totals { margin-top: 18px; }
+  .note { color: #555; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>SimpleBill</h1>
+  <p>Create professional invoices and quotations on your phone.</p>
+</header>
+
+<main>
+  <p id="status" class="status" role="alert" aria-live="polite"></p>
+
+  <section class="card">
+    <div class="document-head">
+      <div>
+        <h2 id="docHeading">INVOICE</h2>
+        <p class="note">Fill in your details below.</p>
+      </div>
+      <div class="field">
+        <label for="docType">Document type</label>
+        <select id="docType">
+          <option value="INVOICE">Invoice</option>
+          <option value="QUOTATION">Quotation</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label for="docNumber">Document number *</label>
+        <input id="docNumber" value="INV-001" maxlength="50">
+      </div>
+      <div class="field">
+        <label for="docDate">Date *</label>
+        <input id="docDate" type="date">
+      </div>
+      <div class="field">
+        <label for="business">Business name *</label>
+        <input id="business" placeholder="Your business name" maxlength="100">
+      </div>
+      <div class="field">
+        <label for="businessContact">Business contact</label>
+        <input id="businessContact" placeholder="Phone or email" maxlength="120">
+      </div>
+      <div class="field full">
+        <label for="businessAddress">Business address</label>
+        <textarea id="businessAddress" placeholder="Business address" maxlength="300"></textarea>
+      </div>
+      <div class="field">
+        <label for="customer">Customer name *</label>
+        <input id="customer" placeholder="Customer name" maxlength="100">
+      </div>
+      <div class="field">
+        <label for="customerContact">Customer contact</label>
+        <input id="customerContact" placeholder="Phone or email" maxlength="120">
+      </div>
+      <div class="field full">
+        <label for="customerAddress">Customer address</label>
+        <textarea id="customerAddress" placeholder="Customer address" maxlength="300"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Items and services</h2>
+    <p class="note">Enter a description, quantity and price per unit.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Description *</th>
+            <th>Qty</th>
+            <th>Price (₹)</th>
+            <th>Amount</th>
+            <th class="remove-col">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="items"></tbody>
+      </table>
+    </div>
+    <div class="actions no-print" style="margin-top:14px">
+      <button type="button" class="secondary" id="addItem">+ Add item</button>
+    </div>
+
+    <div class="totals">
+      <div class="total-row">
+        <span>Subtotal</span>
+        <strong id="subtotal">₹0.00</strong>
+      </div>
+      <div class="total-row grand">
+        <span>Total (INR)</span>
+        <span id="grandTotal">₹0.00</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Additional details</h2>
+    <div class="field">
+      <label for="notes">Notes / terms</label>
+      <textarea id="notes" placeholder="Optional notes, payment terms or quotation validity" maxlength="1000"></textarea>
+    </div>
+    <p class="note" style="margin-top:12px">
+      This is a basic learning prototype. It does not calculate GST,
+      generate tax-compliant invoices, or send/store documents online.
+      Keep your own copy of any document you need.
+    </p>
+  </section>
+
+  <section class="card no-print">
+    <h2>Finish</h2>
+    <div class="actions">
+      <button type="button" class="primary" id="printBtn">Print / Save as PDF</button>
+      <button type="button" class="secondary" id="resetBtn">Clear form</button>
+    </div>
+    <p class="note" style="margin-top:12px">
+      To save a PDF, choose "Save as PDF" in your browser's print dialog.
+      Availability and menu names can vary by device.
+    </p>
+  </section>
+</main>
+
+<footer>SimpleBill · A free, browser-based learning project</footer>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const itemsBody = $("items");
+const money = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+function showStatus(message) {
+  $("status").textContent = message;
+}
+
+function makeItem(description = "", qty = "1", price = "") {
+  const tr = document.createElement("tr");
+
+  const descCell = document.createElement("td");
+  const desc = document.createElement("input");
+  desc.className = "item-desc";
+  desc.placeholder = "Item or service";
+  desc.maxLength = 150;
+  desc.setAttribute("aria-label", "Item description");
+  desc.value = description;
+  descCell.appendChild(desc);
+
+  const qtyCell = document.createElement("td");
+  const quantity = document.createElement("input");
+  quantity.className = "item-qty";
+  quantity.type = "number";
+  quantity.min = "0.01";
+  quantity.max = "1000000000";
+  quantity.step = "any";
+  quantity.inputMode = "decimal";
+  quantity.value = qty;
+  quantity.setAttribute("aria-label", "Quantity");
+  qtyCell.appendChild(quantity);
+
+  const priceCell = document.createElement("td");
+  const priceInput = document.createElement("input");
+  priceInput.className = "item-price";
+  priceInput.type = "number";
+  priceInput.min = "0";
+  priceInput.max = "1000000000";
+  priceInput.step = "any";
+  priceInput.inputMode = "decimal";
+  priceInput.placeholder = "0.00";
+  priceInput.value = price;
+  priceInput.setAttribute("aria-label", "Price per unit in rupees");
+  priceCell.appendChild(priceInput);
+
+  const amountCell = document.createElement("td");
+  amountCell.className = "amount";
+  amountCell.textContent = "₹0.00";
+
+  const removeCell = document.createElement("td");
+  removeCell.className = "remove-col";
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "remove-btn";
+  remove.textContent = "×";
+  remove.setAttribute("aria-label", "Remove item");
+  remove.addEventListener("click", () => {
+    tr.remove();
+    recalculate();
+  });
+  removeCell.appendChild(remove);
+
+  tr.append(descCell, qtyCell, priceCell, amountCell, removeCell);
+  itemsBody.appendChild(tr);
+
+  [desc, quantity, priceInput].forEach(input => {
+    input.addEventListener("input", recalculate);
+  });
+  recalculate();
+}
+
+function readNumber(input) {
+  if (input.value.trim() === "") return null;
+  const n = Number(input.value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function recalculate() {
+  let subtotal = 0;
+
+  [...itemsBody.rows].forEach(row => {
+    const qty = readNumber(row.querySelector(".item-qty"));
+    const price = readNumber(row.querySelector(".item-price"));
+    const amountCell = row.querySelector(".amount");
+
+    if (qty !== null && price !== null &&
+        qty > 0 && price >= 0 &&
+        qty <= 1e9 && price <= 1e9) {
+      const amount = qty * price;
+      if (Number.isFinite(amount) && amount <= 1e15) {
+        subtotal += amount;
+        amountCell.textContent = money.format(amount);
+      } else {
+        amountCell.textContent = "Invalid";
+      }
+    } else {
+      amountCell.textContent = "—";
+    }
+  });
+
+  $("subtotal").textContent = money.format(subtotal);
+  $("grandTotal").textContent = money.format(subtotal);
+}
+
+function validateForm() {
+  const required = [
+    ["docNumber", "Enter a document number."],
+    ["docDate", "Choose a document date."],
+    ["business", "Enter your business name."],
+    ["customer", "Enter the customer name."]
+  ];
+
+  for (const [id, message] of required) {
+    if (!$ (id).value.trim()) {
+      showStatus(message);
+      $(id).focus();
+      return false;
+    }
+  }
+
+  if (itemsBody.rows.length === 0) {
+    showStatus("Add at least one item.");
+    return false;
+  }
+
+  let total = 0;
+
+  for (const row of itemsBody.rows) {
+    const desc = row.querySelector(".item-desc").value.trim();
+    const qtyInput = row.querySelector(".item-qty");
+    const priceInput = row.querySelector(".item-price");
+    const qty = readNumber(qtyInput);
+    const price = readNumber(priceInput);
+
+    if (!desc) {
+      showStatus("Every item needs a description.");
+      row.querySelector(".item-desc").focus();
+      return false;
+    }
+    if (qty === null || qty <= 0 || qty > 1e9 ||
+        !qtyInput.checkValidity()) {
+      showStatus("Enter a valid quantity greater than zero.");
+      qtyInput.focus();
+      return false;
+    }
+    if (price === null || price < 0 || price > 1e9 ||
+        !priceInput.checkValidity()) {
+      showStatus("Enter a valid price of zero or more.");
+      priceInput.focus();
+      return false;
+    }
+
+    const amount = qty * price;
+    if (!Number.isFinite(amount) || amount > 1e15) {
+      showStatus("An item amount is too large.");
+      priceInput.focus();
+      return false;
+    }
+    total += amount;
+  }
+
+  if (!Number.isFinite(total) || total > 1e15) {
+    showStatus("The total is too large.");
+    return false;
+  }
+
+  showStatus("");
+  return true;
+}
+
+$("docType").addEventListener("change", () => {
+  const type = $("docType").value;
+  $("docHeading").textContent = type;
+  if ($("docNumber").value.trim() === "INV-001" ||
+      $("docNumber").value.trim() === "QUO-001") {
+    $("docNumber").value = type === "INVOICE" ? "INV-001" : "QUO-001";
+  }
+});
+
+$("addItem").addEventListener("click", () => {
+  if (itemsBody.rows.length >= 50) {
+    showStatus("Maximum 50 items per document.");
+    return;
+  }
+  showStatus("");
+  makeItem();
+  itemsBody.lastElementChild
+    .querySelector(".item-desc").focus();
+});
+
+$("printBtn").addEventListener("click", () => {
+  if (!validateForm()) return;
+  window.print();
+});
+
+$("resetBtn").addEventListener("click", () => {
+  if (!window.confirm("Clear all details and items?")) return;
+
+  $("docType").value = "INVOICE";
+  $("docHeading").textContent = "INVOICE";
+  $("docNumber").value = "INV-001";
+  $("docDate").value = new Date().toISOString().slice(0, 10);
+
+  [
+    "business", "businessContact", "businessAddress",
+    "customer", "customerContact", "customerAddress", "notes"
+  ].forEach(id => $(id).value = "");
+
+  itemsBody.replaceChildren();
+  makeItem();
+  showStatus("");
+});
+
+$("docDate").value = new Date().toISOString().slice(0, 10);
+makeItem();
+</script>
+</body>
+</html>
+
